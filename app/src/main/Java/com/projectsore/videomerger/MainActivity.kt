@@ -71,7 +71,7 @@ class MainActivity : ComponentActivity() {
     private fun buildInterface() {
         val page = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(24, 38, 24, 24)
+            setPadding(dp(16), dp(24), dp(16), dp(24))
             setBackgroundColor(0xFF0B1220.toInt())
         }
 
@@ -88,7 +88,7 @@ class MainActivity : ComponentActivity() {
             textSize = 14f
             setTextColor(0xFF9EACC0.toInt())
             gravity = Gravity.CENTER
-            setPadding(0, 10, 0, 28)
+            setPadding(0, dp(8), 0, dp(24))
         }
         page.addView(subtitle, matchWrap())
 
@@ -104,7 +104,7 @@ class MainActivity : ComponentActivity() {
             text = "OUTPUT  •  MP4 / H.264 / AAC\n1920 × 1080  •  Full HD\nAudio asli dari kedua video dipertahankan jika didukung."
             textSize = 13f
             setTextColor(0xFFB9C7D8.toInt())
-            setPadding(15, 18, 15, 18)
+            setPadding(dp(14), dp(14), dp(14), dp(14))
             setBackgroundColor(0xFF18263A.toInt())
             setLineSpacing(5f, 1f)
         }
@@ -125,12 +125,31 @@ class MainActivity : ComponentActivity() {
             text = "Pilih dua video untuk memulai."
             textSize = 13f
             setTextColor(0xFF9EACC0.toInt())
-            setPadding(0, 15, 0, 0)
+            setPadding(0, dp(12), 0, 0)
             gravity = Gravity.CENTER
         }
         page.addView(status, matchWrap())
 
-        val scroll = android.widget.ScrollView(this).apply { addView(page) }
+        val scroll = android.widget.ScrollView(this).apply {
+            setBackgroundColor(0xFF0B1220.toInt())
+            addView(page)
+        }
+        // Targetsdk 35+ memaksa tampilan edge-to-edge: beri ruang untuk status bar & navigation bar.
+        scroll.setOnApplyWindowInsetsListener { v, insets ->
+            if (Build.VERSION.SDK_INT >= 30) {
+                val bars = insets.getInsets(android.view.WindowInsets.Type.systemBars())
+                v.setPadding(bars.left, bars.top, bars.right, bars.bottom)
+            } else {
+                @Suppress("DEPRECATION")
+                v.setPadding(
+                    insets.systemWindowInsetLeft,
+                    insets.systemWindowInsetTop,
+                    insets.systemWindowInsetRight,
+                    insets.systemWindowInsetBottom
+                )
+            }
+            insets
+        }
         setContentView(scroll)
     }
 
@@ -138,7 +157,7 @@ class MainActivity : ComponentActivity() {
         text = textValue
         textSize = 14f
         setTextColor(0xFFF3F6FB.toInt())
-        setPadding(15, 16, 15, 16)
+        setPadding(dp(14), dp(12), dp(14), dp(12))
         setBackgroundColor(0xFF18263A.toInt())
     }
 
@@ -251,6 +270,18 @@ class MainActivity : ComponentActivity() {
 
     private fun saveToGallery(file: File) {
         try {
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
+                // Android 9 ke bawah: MediaStore butuh izin storage, jadi simpan ke folder app.
+                val base = getExternalFilesDir(Environment.DIRECTORY_MOVIES) ?: filesDir
+                val dir = File(base, "VideoMerger").apply { mkdirs() }
+                val target = File(dir, "Video-Gabungan-1080p-${System.currentTimeMillis()}.mp4")
+                file.copyTo(target, overwrite = true)
+                file.delete()
+                finishExport()
+                status.text = "Berhasil! Video tersimpan di:\n${target.absolutePath}"
+                Toast.makeText(this, "Video berhasil disimpan.", Toast.LENGTH_LONG).show()
+                return
+            }
             val values = ContentValues().apply {
                 put(MediaStore.Video.Media.DISPLAY_NAME, "Video-Gabungan-1080p-${System.currentTimeMillis()}.mp4")
                 put(MediaStore.Video.Media.MIME_TYPE, "video/mp4")
@@ -287,6 +318,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onDestroy() {
         handler.removeCallbacksAndMessages(null)
+        if (exporting) transformer?.cancel()
         super.onDestroy()
     }
 }
