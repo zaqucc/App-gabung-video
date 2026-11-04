@@ -65,37 +65,11 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        installCrashLogger()
         try {
             buildInterface()
-            showPreviousCrash()
         } catch (t: Throwable) {
             showFatal(t)
         }
-    }
-
-    // ---- Pelacak crash: tampilkan error di layar supaya mudah dilaporkan ----
-    private fun crashFile() = File(filesDir, "last_crash.txt")
-
-    private fun installCrashLogger() {
-        val previous = Thread.getDefaultUncaughtExceptionHandler()
-        Thread.setDefaultUncaughtExceptionHandler { thread, error ->
-            try {
-                crashFile().writeText(android.util.Log.getStackTraceString(error))
-            } catch (_: Throwable) {
-            }
-            previous?.uncaughtException(thread, error)
-        }
-    }
-
-    private fun showPreviousCrash() {
-        val file = crashFile()
-        if (!file.exists()) return
-        val text = file.readText().take(3500)
-        file.delete()
-        status.text = "CRASH SEBELUMNYA:\n$text"
-        status.setTextIsSelectable(true)
-        status.gravity = Gravity.START
     }
 
     private fun showFatal(error: Throwable) {
