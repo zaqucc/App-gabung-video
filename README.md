@@ -38,6 +38,8 @@ VideoMergerKotlin/
 └── settings.gradle.kts
 ```
 
+`app/debug.keystore` wajib ikut terunggah ke GitHub.
+
 ## Pengujian awal
 - Coba dua klip pendek terlebih dahulu (5–15 detik).
 - Gunakan video MP4/H.264 yang umum untuk tes awal.
@@ -49,6 +51,8 @@ VideoMergerKotlin/
 Resolusi output ditargetkan 1920×1080. Video sumber yang resolusinya lebih rendah tidak akan memperoleh detail asli 1080p hanya karena diperbesar. Klip dengan rasio berbeda akan disesuaikan ke kanvas 16:9 dengan skala fit; tampilan akhir mengikuti perilaku efek Presentation Media3. Keberhasilan 1080p tetap bergantung pada kemampuan encoder perangkat.
 
 ## Troubleshooting
+- **Cara membaca error build:** di halaman run yang gagal, buka langkah `Ringkasan error (jika gagal)`, atau unduh artifact `build-log` (berisi log lengkap).
+- **"Aplikasi tidak terpasang" saat menimpa versi lama:** proyek ini sudah memakai `app/debug.keystore` tetap. Jika APK lama dibuat sebelum keystore ini ada, hapus (uninstall) aplikasi lama sekali, lalu pasang APK baru. Setelah itu update berikutnya bisa langsung menimpa.
 - **Build gagal:** buka tab Actions > pilih run gagal > baca log langkah `Build debug APK`. Periksa apakah seluruh folder dan file tersembunyi `.github` sudah terunggah.
 - **APK tidak terpasang:** pastikan mengunduh dan mengekstrak artifact ZIP, lalu instal APK di dalamnya.
 - **Ekspor gagal:** coba dua video pendek MP4/H.264. Format kamera tertentu, HDR, variable frame rate, atau codec tertentu mungkin tidak kompatibel di semua perangkat.
