@@ -65,7 +65,49 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        buildInterface()
+        installCrashLogger()
+        try {
+            buildInterface()
+            showPreviousCrash()
+        } catch (t: Throwable) {
+            showFatal(t)
+        }
+    }
+
+    // ---- Pelacak crash: tampilkan error di layar supaya mudah dilaporkan ----
+    private fun crashFile() = File(filesDir, "last_crash.txt")
+
+    private fun installCrashLogger() {
+        val previous = Thread.getDefaultUncaughtExceptionHandler()
+        Thread.setDefaultUncaughtExceptionHandler { thread, error ->
+            try {
+                crashFile().writeText(android.util.Log.getStackTraceString(error))
+            } catch (_: Throwable) {
+            }
+            previous?.uncaughtException(thread, error)
+        }
+    }
+
+    private fun showPreviousCrash() {
+        val file = crashFile()
+        if (!file.exists()) return
+        val text = file.readText().take(3500)
+        file.delete()
+        status.text = "CRASH SEBELUMNYA:\n$text"
+        status.setTextIsSelectable(true)
+        status.gravity = Gravity.START
+    }
+
+    private fun showFatal(error: Throwable) {
+        val view = TextView(this).apply {
+            text = "Gagal membuka layar:\n" + android.util.Log.getStackTraceString(error).take(3500)
+            setTextColor(0xFFFFFFFF.toInt())
+            setBackgroundColor(0xFF0B1220.toInt())
+            setPadding(dp(16), dp(48), dp(16), dp(16))
+            textSize = 12f
+            setTextIsSelectable(true)
+        }
+        setContentView(android.widget.ScrollView(this).apply { addView(view) })
     }
 
     private fun buildInterface() {
@@ -189,6 +231,17 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun startMerge() {
+        try {
+            startMergeInternal()
+        } catch (t: Throwable) {
+            finishExport()
+            status.text = "Error:\n" + android.util.Log.getStackTraceString(t).take(3000)
+            status.setTextIsSelectable(true)
+            status.gravity = Gravity.START
+        }
+    }
+
+    private fun startMergeInternal() {
         val uri1 = firstUri ?: return
         val uri2 = secondUri ?: return
         if (exporting) return
