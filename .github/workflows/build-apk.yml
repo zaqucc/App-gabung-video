@@ -32,9 +32,29 @@ jobs:
           yes | "$SDKM" --licenses > /dev/null || true
           "$SDKM" "platforms;android-36" "build-tools;36.0.0"
 
+      - name: Cek struktur source
+        shell: bash
+        run: |
+          echo "File Kotlin yang ditemukan di repo:"
+          find . -name "*.kt" -not -path "./.git/*"
+          for f in MainActivity App CrashActivity; do
+            test -f "app/src/main/java/com/projectsore/videomerger/$f.kt" || { echo "::error::$f.kt TIDAK ADA di app/src/main/java/com/projectsore/videomerger/"; exit 1; }
+          done
+          test -f app/debug.keystore || { echo "::error::app/debug.keystore tidak ada"; exit 1; }
+
       - name: Build debug APK
         shell: bash
         run: gradle assembleDebug --stacktrace --console=plain 2>&1 | tee build.log
+
+      - name: Cek isi APK
+        shell: bash
+        run: |
+          APK=app/build/outputs/apk/debug/app-debug.apk
+          for c in MainActivity App CrashActivity; do
+            n=$(unzip -p "$APK" 'classes*.dex' | grep -ac "Lcom/projectsore/videomerger/$c;" || true)
+            if [ "${n:-0}" -eq 0 ]; then echo "::error::Kelas $c TIDAK ADA di dalam APK"; exit 1; fi
+          done
+          echo "Semua kelas ada di APK"
 
       - name: Ringkasan error (jika gagal)
         if: failure()
